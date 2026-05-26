@@ -52,23 +52,22 @@ Because this community edition interacts directly with standard Linux kernel dri
 ### 5. ASUS VivoBook Series
 * **ASUS VivoBook Pro:** VivoBook Pro 14X, 15X, 16X (K3400, K3500, M7600 series with dedicated graphics)
 
----
+## 🛠️ Automated Installation
 
-## 🛠️ Requirements & System Setup
+To set up udev permissions, register system paths, and create a beautiful **desktop menu launcher shortcut** automatically, simply run:
 
-To allow **ASUS-Control** to interface with your system nodes without needing root password prompts, make sure the following Linux packages and rules are configured:
+```bash
+chmod +x install.sh
+./install.sh
+```
 
-1. **ASUS Linux Daemons:** Ensure `asusd`, `asusd-user`, and `supergfxctl` are active:
-   ```bash
-   systemctl status asusd.service supergfxd.service
-   ```
-2. **Udev Rules:** Install the permission rules from `99-asus.rules` to `/etc/udev/rules.d/` so user-space programs can modify sysfs cooling curves safely.
+The script will automatically detect your local username and configure the system rules cleanly.
 
 ---
 
 ## 🏃 Launching the Dashboard
 
-Start the ASUS dashboard by running:
+Once installed, you can launch **ASUS-Control** directly from your desktop applications menu, or run it via the terminal:
 ```bash
 python3 asus_control.py
 ```
