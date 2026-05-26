@@ -1,0 +1,22 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local user/active settings (avoid sharing personal calibration settings)
+asus_settings.json
+asus_custom_profiles.json
+
+# Logs and system calibration outputs
+*.log
+calibration.log
+
+# Telemetry benchmarks and report files
+benchmark_report.md
+benchmark_report_final.md
+benchmark_results.json
+
+# OS and Editor configurations
+.DS_Store
+.vscode/
+.idea/
