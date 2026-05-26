@@ -38,6 +38,18 @@ else
     echo -e "${GREEN}[OK] Python and Tkinter are ready.${NC}"
 fi
 
+TARGET_DIR="/opt/asus-control"
+
+# 2.5. Copy files to system /opt directory
+echo -e "\n${YELLOW}[1.5/4] Installing application files to ${TARGET_DIR}...${NC}"
+echo -e "Requires admin permissions to copy files to ${BLUE}${TARGET_DIR}${NC}"
+if sudo mkdir -p "$TARGET_DIR" && sudo cp -r . "$TARGET_DIR" && sudo chown -R $CURRENT_USER:$CURRENT_GROUP "$TARGET_DIR"; then
+    echo -e "${GREEN}[OK] Application files successfully installed to ${TARGET_DIR}.${NC}"
+else
+    echo -e "${RED}[ERROR] Failed to write files to ${TARGET_DIR}. Please check sudo permissions.${NC}"
+    exit 1
+fi
+
 # 3. Create and install udev rules dynamically
 echo -e "\n${YELLOW}[2/4] Setting up system permission rules (udev)...${NC}"
 UDEV_RULE_PATH="/etc/udev/rules.d/99-asus.rules"
@@ -84,11 +96,11 @@ Version=1.0
 Type=Application
 Name=ASUS-Control
 Comment=ASUS Performance Dashboard Control Center
-Exec=python3 ${INSTALL_DIR}/asus_control.py
-Icon=${INSTALL_DIR}/asus_control_icon.png
+Exec=python3 ${TARGET_DIR}/asus_control.py
+Icon=${TARGET_DIR}/asus_control_icon.png
 Terminal=false
 Categories=System;Settings;
-Path=${INSTALL_DIR}
+Path=${TARGET_DIR}
 StartupNotify=true
 X-GNOME-SingleWindow=true
 EOF

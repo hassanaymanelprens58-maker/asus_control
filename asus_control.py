@@ -700,6 +700,25 @@ class ArmouryCrateASUSApp(tk.Tk):
         for b in [self.od_btn_off, self.od_btn_on]:
             self.bind_armoury_hover(b)
 
+        # ==================== GLOBAL HOTKEY BINDER ====================
+        self.hk_title_lbl = tk.Label(display_layout, text="GLOBAL APPLICATION LAUNCH HOTKEY", font=("Helvetica Neue", 10, "bold"), fg=self.colors["secondary"], bg=self.colors["panel"])
+        self.hk_title_lbl.pack(anchor="w", pady=(20, 5))
+        
+        self.hk_frame = tk.Frame(display_layout, bg=self.colors["panel"], bd=1, relief="solid")
+        self.hk_frame.configure(highlightbackground=self.colors["border"], highlightcolor=self.colors["border"], highlightthickness=1)
+        self.hk_frame.pack(fill="x", pady=10, ipady=12, ipadx=10)
+        
+        friendly_hk = self.active_settings.get("global_hotkey_friendly", "None")
+        
+        self.hotkey_lbl = tk.Label(self.hk_frame, text=f"LAUNCH HOTKEY: {friendly_hk}", font=("Courier 10 Pitch", 10, "bold"), fg=self.colors["text"], bg=self.colors["panel"])
+        self.hotkey_lbl.pack(side="left", padx=20)
+        
+        self.hotkey_btn = tk.Button(self.hk_frame, text="◣ BIND LAUNCH HOTKEY" if friendly_hk == "None" else "◣ CHANGE LAUNCH HOTKEY", font=("Helvetica Neue", 9, "bold"),
+                                    fg="#ffffff", bg=self.colors["primary"], activebackground=self.colors["primary"], activeforeground="#ffffff", bd=0, padx=15, pady=8,
+                                    command=self.start_hotkey_listening)
+        self.hotkey_btn.pack(side="right", padx=20)
+        self.bind_armoury_hover(self.hotkey_btn)
+
     # 5. LIGHTING AURA PAGE
     def build_aura_page(self):
         self.tab_aura.columnconfigure(0, weight=1)
@@ -1534,6 +1553,90 @@ class ArmouryCrateASUSApp(tk.Tk):
                     self.add_log(f"Display Panel: Overdrive toggle failed: {err}", "error")
             self.after(0, finish)
         threading.Thread(target=run, daemon=True).start()
+
+    # ==================== GLOBAL HOTKEY BACKEND HANDLERS ====================
+    def start_hotkey_listening(self):
+        self.hotkey_btn.configure(text="[ PRESS KEY COMBO... ]", fg=self.colors["secondary"])
+        self.bind("<KeyPress>", self.on_hotkey_press)
+        self.captured_modifiers = []
+        self.captured_key = None
+
+    def on_hotkey_press(self, event):
+        key = event.keysym
+        modifiers = {
+            "Control_L": "Ctrl", "Control_R": "Ctrl",
+            "Alt_L": "Alt", "Alt_R": "Alt",
+            "Shift_L": "Shift", "Shift_R": "Shift",
+            "Super_L": "Super", "Super_R": "Super"
+        }
+        
+        if key in modifiers:
+            mod = modifiers[key]
+            if mod not in self.captured_modifiers:
+                self.captured_modifiers.append(mod)
+            self.hotkey_btn.configure(text=f"[ { '+'.join(self.captured_modifiers) }... ]")
+        else:
+            special_mappings = {
+                "space": "Space",
+                "Return": "Enter",
+                "Escape": "Esc",
+                "period": "Period",
+                "comma": "Comma",
+                "slash": "Slash",
+                "backslash": "Backslash",
+                "semicolon": "Semicolon",
+                "apostrophe": "Apostrophe"
+            }
+            self.captured_key = special_mappings.get(key, key)
+            self.apply_captured_hotkey()
+
+    def apply_captured_hotkey(self):
+        self.unbind("<KeyPress>")
+        
+        if not self.captured_key:
+            self.hotkey_btn.configure(text="◣ BIND LAUNCH HOTKEY", fg="#ffffff")
+            return
+            
+        gnome_mods = {
+            "Ctrl": "<Ctrl>",
+            "Alt": "<Alt>",
+            "Shift": "<Shift>",
+            "Super": "<Super>"
+        }
+        
+        formatted_mods = "".join([gnome_mods[m] for m in self.captured_modifiers])
+        gnome_hotkey = f"{formatted_mods}{self.captured_key.lower()}"
+        friendly_hotkey = f"{'+'.join(self.captured_modifiers)}+{self.captured_key.upper() if len(self.captured_key)==1 else self.captured_key}"
+        
+        self.save_settings(global_hotkey=gnome_hotkey, global_hotkey_friendly=friendly_hotkey)
+        self.set_gnome_hotkey(gnome_hotkey)
+        
+        self.hotkey_lbl.configure(text=f"LAUNCH HOTKEY: {friendly_hotkey}")
+        self.hotkey_btn.configure(text="◣ CHANGE LAUNCH HOTKEY", fg="#ffffff")
+        self.add_log(f"Hotkey: Global shortcut set successfully to {friendly_hotkey}", "success")
+        self.status_bar.configure(text=f"⚡ GLOBAL LAUNCH SHORTCUT SET TO: {friendly_hotkey}", fg=self.colors["secondary"])
+
+    def set_gnome_hotkey(self, hotkey_str):
+        import subprocess
+        path = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+        
+        res = subprocess.run("gsettings get org.gnome.settings-daemon.plugins.media-keys custom-keybindings", shell=True, capture_output=True, text=True)
+        current_bindings = res.stdout.strip()
+        
+        if not current_bindings or current_bindings == "@as []" or current_bindings == "[]":
+            new_bindings = f"['{path}']"
+        elif path not in current_bindings:
+            cleaned = current_bindings.replace("[", "").replace("]", "").replace("'", "")
+            bindings_list = [b.strip() for b in cleaned.split(",") if b.strip()]
+            bindings_list.append(path)
+            new_bindings = str(bindings_list).replace('"', "'")
+        else:
+            new_bindings = current_bindings
+            
+        subprocess.run(f"gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings \"{new_bindings}\"", shell=True)
+        subprocess.run(f"gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:{path} name 'ASUS-Control Launcher'", shell=True)
+        subprocess.run(f"gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:{path} command 'python3 /opt/asus-control/asus_control.py'", shell=True)
+        subprocess.run(f"gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:{path} binding '{hotkey_str}'", shell=True)
 
     # Nvidia WMI sliders change handlers
     def on_boost_slider_change(self, val):
