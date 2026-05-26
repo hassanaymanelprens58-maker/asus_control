@@ -17,7 +17,7 @@ echo -e "${BLUE}==============================================${NC}"
 # 1. Detect user & directories
 CURRENT_USER=$(logname || echo $USER)
 CURRENT_GROUP=$(id -gn "$CURRENT_USER")
-INSTALL_DIR=$(pwd)
+INSTALL_DIR=$(dirname "$(readlink -f "$0")")
 
 echo -e "* Current User detected:  ${GREEN}${CURRENT_USER}${NC}"
 echo -e "* Current Group detected: ${GREEN}${CURRENT_GROUP}${NC}"
@@ -43,7 +43,7 @@ TARGET_DIR="/opt/asus-control"
 # 2.5. Copy files to system /opt directory
 echo -e "\n${YELLOW}[1.5/4] Installing application files to ${TARGET_DIR}...${NC}"
 echo -e "Requires admin permissions to copy files to ${BLUE}${TARGET_DIR}${NC}"
-if sudo mkdir -p "$TARGET_DIR" && sudo cp -r . "$TARGET_DIR" && sudo chown -R $CURRENT_USER:$CURRENT_GROUP "$TARGET_DIR"; then
+if sudo mkdir -p "$TARGET_DIR" && sudo cp -r "$INSTALL_DIR"/. "$TARGET_DIR" && sudo chown -R $CURRENT_USER:$CURRENT_GROUP "$TARGET_DIR"; then
     echo -e "${GREEN}[OK] Application files successfully installed to ${TARGET_DIR}.${NC}"
 else
     echo -e "${RED}[ERROR] Failed to write files to ${TARGET_DIR}. Please check sudo permissions.${NC}"
